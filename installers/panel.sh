@@ -416,7 +416,7 @@ panel_conf() {
         elif [ "$WEBSERVER" == "Apache" ]; then
             systemctl stop apache2
             certbot certonly --standalone -d $FQDN --staple-ocsp --no-eff-email -m $EMAIL --agree-tos
-            a2dissite 000-default.conf && systemctl reload apache2
+            a2dissite 000-default.conf || true
             if [ -f /etc/apache2/sites-enabled/pterodactyl.conf ]; then
                 rm -f /etc/apache2/sites-enabled/pterodactyl.conf
             fi
