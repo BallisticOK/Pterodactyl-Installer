@@ -52,7 +52,7 @@ oscheck() {
     case "$dist" in
         ubuntu)
             case "$version" in
-                22.04|24.04)
+                22.04|24.04|26.04)
                     echo "Your OS, $dist $version, is supported"
                     echo ""
                     options
