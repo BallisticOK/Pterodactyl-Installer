@@ -511,11 +511,29 @@ panel_install() {
     case "$dist" in
         "ubuntu")
             echo "Setting up for Ubuntu $version..."
-            if ! grep -q "^deb .\+ondrej/php" /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null; then
-                echo "Setting up PHP for Ubuntu"
-                LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
+        
+            if [[ "$version" == "26.04" ]]; then
+                echo "Setting up PHP repository for Ubuntu 26.04..."
+        
+                if [[ ! -f /etc/apt/sources.list.d/php.list || ! -f /usr/share/keyrings/debsuryorg-archive-keyring.gpg ]]; then
+                    curl -sSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb
+                    dpkg -i /tmp/debsuryorg-archive-keyring.deb
+        
+                    echo "deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" \
+                        | tee /etc/apt/sources.list.d/php.list
+        
+                    rm -f /tmp/debsuryorg-archive-keyring.deb
+                else
+                    echo "PHP repository already exists, skipping."
+                fi
+        
             else
-                echo "PHP repository already exists, skipping."
+                if ! grep -q "^deb .\+ondrej/php" /etc/apt/sources.list /etc/apt/sources.list.d/*.list 2>/dev/null; then
+                    echo "Setting up PHP for Ubuntu"
+                    LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
+                else
+                    echo "PHP repository already exists, skipping."
+                fi
             fi
             ;;
 
