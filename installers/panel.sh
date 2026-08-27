@@ -317,6 +317,26 @@ panel_conf() {
             https://raw.githubusercontent.com/guldkage/Pterodactyl-Installer/refs/heads/main/configs/pterodactyl-nginx.conf \
             || { echo "Could not download dummy config."; exit 1; }
 
+        echo "Checking NGINX server_tokens configuration..."
+        
+        if [ ! -f /etc/nginx/nginx.conf ]; then
+            echo "[✖] NGINX configuration file not found at /etc/nginx/nginx.conf"
+            exit 1
+        fi
+        
+        if grep -qE '^[[:space:]]*server_tokens[[:space:]]+' /etc/nginx/nginx.conf; then
+            echo "Active server_tokens directive found. Commenting it out..."
+        
+            if ! sed -i -E 's/^([[:space:]]*)(server_tokens[[:space:]]+[^;]+;.*)$/\1# \2/' /etc/nginx/nginx.conf; then
+                echo "[✖] Failed to comment out server_tokens directive."
+                exit 1
+            fi
+        
+            echo "server_tokens directive commented out successfully."
+        else
+            echo "No active server_tokens directive found, skipping."
+        fi
+
         sed -i "s@<domain>@${FQDN}@g" /etc/nginx/sites-enabled/pterodactyl.conf
         systemctl reload nginx || { echo "Could not download dummy config"; exit 1; }
     fi
@@ -375,11 +395,6 @@ panel_conf() {
                 curl -o /etc/nginx/sites-enabled/pterodactyl.conf https://raw.githubusercontent.com/guldkage/Pterodactyl-Installer/main/configs/pterodactyl-nginx.conf
                 sed -i -e "s@<domain>@${FQDN}@g" /etc/nginx/sites-enabled/pterodactyl.conf
 
-                if grep -q "server_tokens off" /etc/nginx/nginx.conf; then
-                    echo "[!] server_tokens off detected in nginx.conf. Removing from pterodactyl.conf to avoid duplicates..."
-                    sed -i '/server_tokens off;/d' /etc/nginx/sites-enabled/pterodactyl.conf
-                fi
-
                 echo "SESSION_SECURE_COOKIE=false" >> /var/www/pterodactyl/.env
                 systemctl restart nginx
 
@@ -401,11 +416,6 @@ panel_conf() {
             if [ "$CUSTOMSSL" == true ]; then
                 sed -i -e "s@ssl_certificate /etc/letsencrypt/live/<domain>/fullchain.pem;@ssl_certificate ${CERTIFICATEPATH};@g" /etc/nginx/sites-enabled/pterodactyl.conf
                 sed -i -e "s@ssl_certificate_key /etc/letsencrypt/live/<domain>/privkey.pem;@ssl_certificate_key ${PRIVATEKEYPATH};@g" /etc/nginx/sites-enabled/pterodactyl.conf
-            fi
-
-            if grep -q "server_tokens off" /etc/nginx/nginx.conf; then
-                echo "[!] server_tokens off detected in nginx.conf. Removing from pterodactyl.conf to avoid duplicates..."
-                sed -i '/server_tokens off;/d' /etc/nginx/sites-enabled/pterodactyl.conf
             fi
             
             if [[ $(lsb_release -cs) == "trixie" ]]; then
