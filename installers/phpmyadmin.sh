@@ -278,10 +278,46 @@ phpmyadmininstall() {
     apt install nginx certbot -y || { echo "Error installing NGINX or Certbot"; exit 1; }
     mkdir /var/www/phpmyadmin && cd /var/www/phpmyadmin || { echo "Error creating directory"; exit 1; }
     
-    if [ "$dist" = "ubuntu" ] && [[ "$version" =~ ^20\.04|22\.04|24\.04$ ]]; then
-        apt -y install software-properties-common curl apt-transport-https ca-certificates gnupg || { echo "Error installing dependencies"; exit 1; }
-        LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
-        apt update || { echo "Error updating package list"; exit 1; }
+    if [ "$dist" = "ubuntu" ]; then
+        if [[ "$version" =~ ^(20\.04|22\.04|24\.04)$ ]]; then
+            apt -y install software-properties-common curl apt-transport-https ca-certificates gnupg || {
+                echo "Error installing dependencies"
+                exit 1
+            }
+    
+            LC_ALL=C.UTF-8 add-apt-repository -y ppa:ondrej/php
+            apt update || {
+                echo "Error updating package list"
+                exit 1
+            }
+    
+        elif [ "$version" = "26.04" ]; then
+            apt -y install curl ca-certificates gnupg || {
+                echo "Error installing dependencies"
+                exit 1
+            }
+    
+            curl -sSLo /tmp/debsuryorg-archive-keyring.deb \
+                https://packages.sury.org/debsuryorg-archive-keyring.deb || {
+                    echo "Error downloading PHP repository keyring"
+                    exit 1
+                }
+    
+            dpkg -i /tmp/debsuryorg-archive-keyring.deb || {
+                echo "Error installing PHP repository keyring"
+                exit 1
+            }
+    
+            echo "deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" \
+                > /etc/apt/sources.list.d/php.list
+    
+            rm -f /tmp/debsuryorg-archive-keyring.deb
+    
+            apt update || {
+                echo "Error updating package list"
+                exit 1
+            }
+        fi
     fi
 
     if [ "$dist" = "debian" ]; then
